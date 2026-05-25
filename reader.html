@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reader</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --text: #1a1612;
+    --muted: #8a8070;
+    --accent: #c4520a;
+    --border: #e0d8cc;
+    --orange-bg: rgba(249, 115, 22, 0.18);
+    --orange-border: rgba(249, 115, 22, 0.5);
+    --orange-word: rgba(249, 115, 22, 0.38);
+    --blue-bg: rgba(59, 130, 246, 0.15);
+    --blue-border: rgba(59, 130, 246, 0.45);
+    --blue-word: rgba(59, 130, 246, 0.32);
+    --playing-bg: rgba(34, 197, 94, 0.15);
+    --playing-border: rgba(34, 197, 94, 0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Lora', Georgia, serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 500;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+    max-width: 720px;
+    padding: 0.6rem 0;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+  #open-btn { background: var(--accent); color: #fff; }
+  #open-btn:hover { background: #a8430a; }
+  #voice-select {
+    background: #f0ebe3;
+    color: var(--muted);
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.5rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    cursor: pointer;
+    max-width: 130px;
+  }
+
+  /* playback controls */
+  #playback-controls {
+    display: none;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  #playback-controls.visible { display: flex; }
+
+  .ctrl-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+    line-height: 1;
+  }
+  .ctrl-btn:active { transform: scale(0.93); }
+  #play-pause-btn { background: #e8f5e9; color: #2e7d32; }
+  #play-pause-btn.playing { background: #fff3e0; color: #e65100; }
+  #stop-btn { background: #f0ebe3; color: var(--muted); opacity: 0.35; cursor: default; }
+  #stop-btn:not(:disabled) { background: #fee2e2; color: #c0392b; opacity: 1; cursor: pointer; }
+
+  #pause-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+  }
+  #pause-input {
+    width: 48px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.38rem 0.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    text-align: center;
+    background: #fafafa;
+    color: var(--text);
+  }
+
+
+  #file-input { display: none; }
+
+  #drop-zone {
+    width: 100%;
+    max-width: 720px;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  #drop-zone.hidden { display: none; }
+  #drop-zone svg { opacity: 0.35; margin-bottom: 0.4rem; }
+
+  #content-area {
+    width: 100%;
+    max-width: 720px;
+    background: var(--surface);
+    padding: 0.5rem 0;
+    line-height: 1.85;
+    font-size: 1.22rem;
+    display: none;
+  }
+  #content-area.visible { display: block; }
+
+  .sentence {
+    border-radius: 4px;
+    padding: 1px 2px;
+    cursor: pointer;
+    transition: background 0.12s;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .sentence:hover { background: rgba(249, 115, 22, 0.07); }
+  .sentence.active-orange { background: var(--orange-bg); outline: 1px solid var(--orange-border); }
+  .sentence.active-blue   { background: var(--blue-bg);   outline: 1px solid var(--blue-border); }
+  .sentence.playing       { background: var(--playing-bg); outline: 2px solid var(--playing-border); }
+
+  .word { border-radius: 3px; padding: 0 1px; transition: background 0.12s; -webkit-user-select: text; user-select: text; }
+  .word.word-active-orange { background: var(--orange-word); }
+  .word.word-active-blue   { background: var(--blue-word); }
+
+  #toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #1a1612;
+    color: #fff;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    padding: 0.55rem 1.2rem;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 1000;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <select id="voice-select" title="German voice"></select>
+  <div id="playback-controls">
+    <button id="play-pause-btn" class="ctrl-btn" title="Play / Pause">▶</button>
+    <button id="stop-btn" class="ctrl-btn" title="Stop" disabled>■</button>
+    <div id="pause-wrap">
+      <span>pause</span>
+      <input id="pause-input" type="number" min="0" max="5000" step="100" value="5000" title="Base pause between sentences (ms)">
+      <span>ms</span>
+    </div>
+
+  </div>
+  <button id="open-btn" class="btn" onclick="document.getElementById('file-input').click()">📂</button>
+  <input type="file" id="file-input" accept=".txt">
+</header>
+
+<div id="drop-zone">
+  <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+  </svg>
+  <span>Tap <strong>Open File</strong> to load a .txt file</span>
+  <span style="font-size:0.73rem;opacity:0.6">Click → copy &nbsp;|&nbsp; Double-click/tap → read aloud &nbsp;|&nbsp; ▶ → auto-play all</span>
+</div>
+
+<div id="content-area"></div>
+<div id="toast"></div>
+
+<script>
+  const fileInput         = document.getElementById('file-input');
+  const dropZone          = document.getElementById('drop-zone');
+  const contentArea       = document.getElementById('content-area');
+  const toast             = document.getElementById('toast');
+  const voiceSelect       = document.getElementById('voice-select');
+  const playbackControls  = document.getElementById('playback-controls');
+  const playPauseBtn      = document.getElementById('play-pause-btn');
+  const stopBtn           = document.getElementById('stop-btn');
+
+  const isMobile = /Android|iPhone|iPad/i.test(navigator.userAgent);
+
+  let lastFile = null;
+
+  // ── Color state ──
+  let colorTurn = 'orange';
+  let highlightHistory = [];
+
+  // ── All sentences list (for auto-play) ──
+  let allSentences = []; // [{span, text}]
+
+  // ── Toast ──
+  let toastTimer;
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+
+  // ── Clipboard ──
+  function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).catch(() => execCopy(text));
+    } else { execCopy(text); }
+  }
+  function execCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;font-size:16px;';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+
+  // ── File reader ──
+  function readFile(file, encoding) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = e => resolve(e.target.result);
+      r.onerror = reject;
+      r.readAsText(file, encoding);
+    });
+  }
+  async function loadFile(file, encoding) {
+    lastFile = file;
+    let text = await readFile(file, encoding);
+    text = text.replace(/^\uFEFF/, '');
+    processText(text);
+  }
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    stopPlayback();
+    loadFile(file, 'windows-1252');
+    fileInput.value = '';
+  });
+
+  // ── Text processing ──
+  function processText(text) {
+    contentArea.innerHTML = '';
+    colorTurn = 'orange';
+    highlightHistory = [];
+    allSentences = [];
+
+    const paragraphs = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split(/\n\n+/);
+    paragraphs.forEach(para => {
+      para = para.trim();
+      if (!para) return;
+      const p = document.createElement('p');
+      p.style.marginBottom = '1.3em';
+      const sentences = para.split(/(?<=[.!?])\s+/).filter(s => s.trim());
+      sentences.forEach((sentText, si) => {
+        const sentSpan = document.createElement('span');
+        sentSpan.className = 'sentence';
+        sentText.split(/(\s+)/).forEach(token => {
+          if (/^\s+$/.test(token)) {
+            sentSpan.appendChild(document.createTextNode(token));
+          } else {
+            const w = document.createElement('span');
+            w.className = 'word';
+            w.textContent = token;
+            sentSpan.appendChild(w);
+          }
+        });
+        if (si < sentences.length - 1) sentSpan.appendChild(document.createTextNode(' '));
+        allSentences.push({ span: sentSpan, text: sentText.trim() });
+        attachEvents(sentSpan, sentText.trim());
+        p.appendChild(sentSpan);
+      });
+      contentArea.appendChild(p);
+    });
+
+    dropZone.classList.add('hidden');
+    contentArea.classList.add('visible');
+    playbackControls.classList.add('visible');
+  }
+
+  // ── Highlights ──
+  function highlightSentence(sentSpan, text) {
+    if (highlightHistory.length >= 2) {
+      const oldest = highlightHistory.shift();
+      oldest.span.classList.remove('active-orange', 'active-blue');
+    }
+    const color = colorTurn;
+    sentSpan.classList.remove('active-orange', 'active-blue');
+    sentSpan.classList.add(color === 'orange' ? 'active-orange' : 'active-blue');
+    highlightHistory.push({ span: sentSpan, color });
+    colorTurn = color === 'orange' ? 'blue' : 'orange';
+    copyToClipboard(text);
+    showToast('Sentence copied');
+  }
+
+  function highlightWord(wordSpan, color) {
+    document.querySelectorAll('.word.word-active-orange, .word.word-active-blue')
+      .forEach(w => w.classList.remove('word-active-orange', 'word-active-blue'));
+    if (wordSpan) wordSpan.classList.add(color === 'orange' ? 'word-active-orange' : 'word-active-blue');
+  }
+
+  // ── Auto-play state ──
+  let isPlaying = false;
+  let isPaused  = false;
+  let playIndex = 0;
+  let playingSentenceSpan = null;
+
+  function setPlayingHighlight(sentSpan) {
+    if (playingSentenceSpan) playingSentenceSpan.classList.remove('playing');
+    playingSentenceSpan = sentSpan;
+    if (sentSpan) {
+      sentSpan.classList.remove('active-orange', 'active-blue');
+      sentSpan.classList.add('playing');
+      sentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  let utteranceWatchdog = null;
+
+  function playFromIndex(index) {
+    if (index >= allSentences.length) {
+      stopPlayback();
+      return;
+    }
+    isPlaying = true;
+    isPaused  = false;
+    playIndex = index;
+    playPauseBtn.textContent = '⏸';
+    playPauseBtn.classList.add('playing');
+    stopBtn.disabled = false;
+
+    const { span, text } = allSentences[index];
+    setPlayingHighlight(span);
+
+    speechSynthesis.cancel();
+    if (utteranceWatchdog) { clearInterval(utteranceWatchdog); utteranceWatchdog = null; }
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'de-DE';
+    if (selectedVoice) utter.voice = selectedVoice;
+    utter.rate = 0.95;
+
+    function onUtteranceEnd() {
+      if (utteranceWatchdog) { clearInterval(utteranceWatchdog); utteranceWatchdog = null; }
+      if (isPlaying && !isPaused) {
+        const basePause = parseInt(document.getElementById('pause-input').value) || 5000;
+        const lengthPause = Math.floor(text.length * 4);
+        const totalPause = basePause + lengthPause;
+        setTimeout(() => {
+          if (isPlaying && !isPaused) playFromIndex(playIndex + 1);
+        }, totalPause);
+      }
+    }
+
+    utter.onend = onUtteranceEnd;
+
+    // Watchdog: Chrome Windows sometimes swallows onend — poll as fallback
+    speechSynthesis.speak(utter);
+    const expectedDuration = (text.length / 10) * (1 / utter.rate) * 1000 + 3000; // rough estimate + buffer
+    let elapsed = 0;
+    const pollInterval = 250;
+    utteranceWatchdog = setInterval(() => {
+      elapsed += pollInterval;
+      if (!speechSynthesis.speaking && !speechSynthesis.pending) {
+        clearInterval(utteranceWatchdog); utteranceWatchdog = null;
+        onUtteranceEnd();
+      } else if (elapsed > expectedDuration + 2000) {
+        // Safety fallback: force advance if stuck too long
+        clearInterval(utteranceWatchdog); utteranceWatchdog = null;
+        onUtteranceEnd();
+      }
+    }, pollInterval);
+  }
+
+  function pausePlayback() {
+    isPaused = true;
+    isPlaying = false;
+    speechSynthesis.cancel();
+    playPauseBtn.textContent = '▶';
+    playPauseBtn.classList.remove('playing');
+    stopBtn.disabled = false;
+  }
+
+  function stopPlayback() {
+    isPlaying = false;
+    isPaused  = false;
+    playIndex = 0;
+    speechSynthesis.cancel();
+    if (utteranceWatchdog) { clearInterval(utteranceWatchdog); utteranceWatchdog = null; }
+    if (playingSentenceSpan) {
+      playingSentenceSpan.classList.remove('playing');
+      playingSentenceSpan = null;
+    }
+    playPauseBtn.textContent = '▶';
+    playPauseBtn.classList.remove('playing');
+    stopBtn.disabled = true;
+  }
+
+  playPauseBtn.addEventListener('click', () => {
+    if (isPlaying) {
+      // currently playing → pause
+      pausePlayback();
+    } else if (isPaused) {
+      // paused → resume from next sentence
+      playFromIndex(playIndex + 1);
+    } else {
+      // stopped → find start index
+      // if a sentence is highlighted, start from it
+      let startIndex = 0;
+      if (highlightHistory.length > 0) {
+        const lastHighlighted = highlightHistory[highlightHistory.length - 1].span;
+        const idx = allSentences.findIndex(s => s.span === lastHighlighted);
+        if (idx !== -1) startIndex = idx;
+      }
+      playFromIndex(startIndex);
+    }
+  });
+
+  stopBtn.addEventListener('click', stopPlayback);
+
+  // ── Speech (single sentence) ──
+  let selectedVoice = null;
+
+  function populateVoices() {
+    const voices = speechSynthesis.getVoices();
+    const german = voices.filter(v => v.lang.startsWith('de'));
+    if (german.length === 0) return;
+    if (voiceSelect.options.length === german.length) return;
+    voiceSelect.innerHTML = '';
+    german.forEach((v, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = v.name.replace(/Microsoft |Google /, '');
+      voiceSelect.appendChild(opt);
+    });
+    // Default to Stefan on desktop, first voice on mobile
+    const stefanIdx = isMobile ? -1 : german.findIndex(v => v.name.toLowerCase().includes('stefan'));
+    const defaultIdx = stefanIdx !== -1 ? stefanIdx : 0;
+    voiceSelect.value = defaultIdx;
+    selectedVoice = german[defaultIdx];
+    voiceSelect.onchange = () => { selectedVoice = german[parseInt(voiceSelect.value)]; };
+  }
+  speechSynthesis.onvoiceschanged = populateVoices;
+  populateVoices();
+
+  function readAloud(text) {
+    // single sentence read — stops auto-play if running
+    stopPlayback();
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'de-DE';
+    if (selectedVoice) utter.voice = selectedVoice;
+    utter.rate = 0.95;
+    speechSynthesis.speak(utter);
+  }
+
+  // ── Events ──
+  function attachEvents(sentSpan, sentText) {
+    isMobile ? attachMobileEvents(sentSpan, sentText) : attachDesktopEvents(sentSpan, sentText);
+  }
+
+  function attachDesktopEvents(sentSpan, sentText) {
+    let clickTimer = null;
+    sentSpan.addEventListener('click', e => {
+      if (clickTimer) return;
+      clickTimer = setTimeout(() => {
+        clickTimer = null;
+        highlightSentence(sentSpan, sentText);
+      }, 220);
+    });
+    sentSpan.addEventListener('dblclick', e => {
+      clearTimeout(clickTimer); clickTimer = null;
+      const colorUsed = colorTurn;
+      highlightSentence(sentSpan, sentText);
+      highlightWord(e.target.closest('.word'), colorUsed);
+      readAloud(sentText);
+    });
+  }
+
+  function attachMobileEvents(sentSpan, sentText) {
+    let longPressTimer = null;
+    let touchMoved = false;
+    let lastTap = 0;
+
+    sentSpan.addEventListener('touchstart', e => {
+      touchMoved = false;
+      const now = Date.now();
+      const timeSinceLastTap = now - lastTap;
+
+      if (timeSinceLastTap < 300) {
+        // double-tap → read aloud
+        clearTimeout(longPressTimer); longPressTimer = null;
+        readAloud(sentText);
+        lastTap = 0;
+        return;
+      }
+      lastTap = now;
+
+      longPressTimer = setTimeout(() => {
+        longPressTimer = null;
+        // long press: native text selection handles it
+      }, 500);
+    }, { passive: true });
+
+    sentSpan.addEventListener('touchmove', () => {
+      touchMoved = true;
+      clearTimeout(longPressTimer); longPressTimer = null;
+    }, { passive: true });
+
+    sentSpan.addEventListener('touchend', () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer); longPressTimer = null;
+        if (!touchMoved) highlightSentence(sentSpan, sentText);
+      }
+    });
+  }
+
+  // ── Keyboard controls (desktop) ──
+  document.addEventListener('keydown', e => {
+    if (isMobile) return;
+    if (e.code === 'Space') {
+      e.preventDefault();
+      playPauseBtn.click();
+    } else if (e.code === 'ArrowRight') {
+      e.preventDefault();
+      if (isPlaying || isPaused) {
+        const next = playIndex + 1;
+        if (next < allSentences.length) playFromIndex(next);
+      }
+    } else if (e.code === 'ArrowLeft') {
+      e.preventDefault();
+      if (isPlaying || isPaused) {
+        const prev = Math.max(0, playIndex - 1);
+        playFromIndex(prev);
+      }
+    }
+  });
+
+
+</script>
+</body>
+</html>
