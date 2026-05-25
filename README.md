@@ -129,13 +129,13 @@ A dropdown in the header shows all available voices for your system's TTS engine
 
 ### Encoding Toggle
 
-If special characters appear garbled after loading a file, click the encoding button to cycle through:
+If special characters appear garbled after loading a file, try saving the txt file with different encodings:
 
 ```
-WIN-1252 → UTF-8 → ISO-8859-1 → UTF-16 → UTF-16LE → UTF-16BE
+WIN-1252, UTF-8, ISO-8859-1, UTF-16 etc.
 ```
 
-The file reloads automatically with each encoding. Stop when the text looks correct. **WIN-1252 is the default** and correct for most German text files created on Windows.
+**WIN-1252 is the default** and correct for most German text files created on Windows.
 
 ---
 
@@ -152,4 +152,4 @@ The file reloads automatically with each encoding. Stop when the text looks corr
 
 ## Browser
 
-Developed and tested on **Google Chrome on Windows**. Other browsers are not supported.
+Developed and tested on **Google Chrome on Windows**. 
