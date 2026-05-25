@@ -28,7 +28,7 @@ For a demonstration of the technique (in German): https://www.youtube.com/watch?
 
 ## How This App Supports Shadowing
 
-1. Load any text file in the app
+1. Load any text file in the app. (What worked best for me is a youtube transcript of any video that interested me)
 2. Press **▶** to start auto-play — each sentence is read aloud one by one with a pause in between
 3. During the pause after each sentence, **repeat it out loud** — this is the shadowing step
 4. Click a sentence at any time to copy it to your clipboard (e.g. to look it up or paste elsewhere)
