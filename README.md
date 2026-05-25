@@ -127,9 +127,9 @@ A dropdown in the header shows all available voices for your system's TTS engine
 
 ---
 
-### Encoding Toggle
+### File encoding
 
-If special characters appear garbled after loading a file, try saving the txt file with different encodings:
+If special characters appear garbled after loading a file, try saving the txt file with different encodings and then opening the file:
 
 ```
 WIN-1252, UTF-8, ISO-8859-1, UTF-16 etc.
