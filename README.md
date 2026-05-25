@@ -55,18 +55,10 @@ This is a single `reader.html` file. No server, no dependencies, no installation
 2. Double-click to open in Chrome
 3. Done
 
-### Option B — Host on Netlify (recommended)
-1. Go to [netlify.com/drop](https://netlify.com/drop)
-2. Drag and drop `reader.html` onto the page
+### Option B — Host the html on any hosting site (free is good :-))
+1. I used infinityfree.com
+2. Register and host it there.
 3. You get a URL instantly — bookmark it in Chrome
-
-### Option C — GitHub Pages (for version control)
-1. Create a GitHub repository
-2. Upload `reader.html` renamed as `index.html`
-3. Go to Settings → Pages → set source to main branch
-4. Access at `https://yourusername.github.io/reponame/`
-
-> For privacy: use a random GitHub username and repo name. Add a `robots.txt` with `Disallow: /` to block search engine indexing. Your text files never leave your device — only the HTML app is hosted.
 
 ---
 
